@@ -5,6 +5,9 @@ rectángulos, círculos, polígonos y formas paramétricas con medidas exactas y
 esquinas configurables, listas para enviar a la cola de láser/CNC o guardar
 en la biblioteca.
 
+<img width="1672" height="941" alt="CreadorFormas" src="https://github.com/user-attachments/assets/c1f8f78d-3206-4ff3-90b8-b54eae1811aa" />
+
+
 ## Instalación
 
 Desde NOPAL → Configuración → Galería de plugins → Creador de formas →
