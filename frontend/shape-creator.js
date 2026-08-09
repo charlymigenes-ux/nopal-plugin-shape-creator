@@ -2,20 +2,324 @@
     const PLUGIN_ID = 'shape-creator';
     if (window.NopalPluginRegistry?.[PLUGIN_ID]) return;
 
+    // I18N debe ir antes que `tools`/`state` -- ambos llaman tr() en su
+    // literal de inicialización (mismo patrón que matriz-led/arduino-accessories).
+    const I18N = {
+        es: {
+            toolSelect: 'Seleccionar', toolRectangle: 'Rectángulo', toolSquare: 'Cuadrado', toolCircle: 'Círculo',
+            toolEllipse: 'Elipse', toolLine: 'Línea', toolPolygon: 'Polígono', toolText: 'Texto',
+            toolDuplicate: 'Duplicar', toolAlign: 'Alinear', toolGroup: 'Agrupar', toolUngroup: 'Desagrupar', toolDelete: 'Borrar',
+            toolbarAriaLabel: 'Herramientas de dibujo',
+            alignMenuTitle: 'Alinear selección', alignLeft: 'Izquierda', alignHCenter: 'Centro horizontal', alignRight: 'Derecha',
+            alignTop: 'Arriba', alignVCenter: 'Centro vertical', alignBottom: 'Abajo',
+            pageTitle: 'CREADOR DE FORMAS', workAreaLabel: 'ÁREA DE TRABAJO',
+            undoTitle: 'Deshacer', redoTitle: 'Rehacer', importDxfTitle: 'Importar DXF', importDxfLabel: 'Importar DXF',
+            saveGalleryTitle: 'Guardar en galería', saveLabel: 'Guardar',
+            machineSelectAriaLabel: 'Seleccionar máquina', canvasAriaLabel: 'Lienzo de formas',
+            zoomOutTitle: 'Alejar', zoomInTitle: 'Acercar', zoomFitTitle: 'Ajustar',
+            propertiesTitle: 'PROPIEDADES', scaleLinkedTitle: 'Mantener proporción',
+            scaleLinkedLabel: 'Escala ligada', scaleFreeLabel: 'Escala libre',
+            propX: 'X (mm)', propY: 'Y (mm)', propWidth: 'Ancho (mm)', propHeight: 'Alto (mm)',
+            propRotation: 'Rotación (°)', propLineWidth: 'Grosor de línea (mm)',
+            textContentLabel: 'Contenido del texto', textContentPlaceholder: 'Escribe el texto...',
+            resetPropertiesBtn: 'Restablecer valores',
+            operationTitle: 'OPERACIÓN', opCut: 'Corte', opEngrave: 'Grabado', opDot: 'Punteado',
+            materialTitle: 'MATERIAL',
+            matPlywood: 'Madera contrachapada', matMdf: 'MDF', matAcrylic: 'Acrílico', matCardboard: 'Cartón',
+            matAnodizedAluminum: 'Aluminio anodizado', matCustom: 'Personalizado',
+            powerLabel: 'Potencia (%)', speedLabel: 'Velocidad (mm/min)',
+            airAssistLabel: 'Asistencia de aire', airAssistHint: 'M8 al iniciar · M9 al terminar',
+            layersTitle: 'CAPAS', layerHeadNum: '#', layerHeadColor: 'Color', layerHeadMode: 'Modo', layerHeadOutput: 'Salida',
+            layerAddBtn: '+ Añadir', layerColorTitle: 'Color', layerOutputAriaLabel: 'Salida',
+            actionsTitle: 'ACCIONES', generateBtn: 'Generar trayecto', previewBtn: 'Vista previa', queueBtn: 'Enviar a cola',
+            statusPosition: 'POSICIÓN', statusPath: 'TRAYECTO / PROGRESO', statusEstimated: 'TIEMPO ESTIMADO',
+            statusShapes: 'FORMAS', statusMachine: 'MÁQUINA',
+            statusDisconnected: '● Sin conexión', statusConnected: '● Conectada',
+            saveModalTitle: 'Guardar en galería', saveModalHint: 'El diseño se guardará como SVG editable.',
+            saveNameLabel: 'Nombre del archivo', saveFolderLabel: 'Carpeta', galleryRootOption: 'Galería / raíz',
+            cancelBtn: 'Cancelar', saveSvgBtn: 'Guardar SVG', savingBtn: 'Guardando...',
+            defaultFileName: 'diseño-formas', defaultShapeText: 'Texto',
+            toastSelectShapeFirst: 'Selecciona una forma primero.',
+            toastSelectTwoShapes: 'Selecciona dos o más formas con Mayús.',
+            toastShapesGrouped: '{count} formas agrupadas.',
+            toastNotInGroup: 'La selección no pertenece a un grupo.',
+            toastGroupSeparated: 'Grupo separado.',
+            toastAddVectorShape: 'Agrega al menos una forma vectorial.',
+            toastPathGenerated: 'Trayecto generado correctamente.',
+            toastCouldNotSaveGcode: 'No se pudo guardar el G-Code.',
+            toastCouldNotAddToQueue: 'No se pudo agregar el trabajo a la cola.',
+            toastJobSentToQueue: 'Trabajo enviado a la cola.',
+            toastAddShapeBeforeSave: 'Agrega al menos una forma antes de guardar.',
+            toastCouldNotSaveDesign: 'No se pudo guardar el diseño.',
+            toastSavedToGallery: '{filename} se guardó en la galería.',
+            toastSelectDxfFile: 'Selecciona un archivo DXF.',
+            toastDxfTooLarge: 'El DXF supera el límite de 2 MB.',
+            toastNoDxfEntities: 'No se encontraron líneas, círculos o polilíneas compatibles.',
+            toastInvalidDxfDimensions: 'Las dimensiones del DXF no son válidas.',
+            toastDxfImported: '{count} entidades DXF importadas.',
+            toastMustHaveOneLayer: 'Debe existir al menos una capa.',
+            previewOnToast: 'Vista previa activada.', previewOffToast: 'Vista previa desactivada.',
+            navLabel: 'Creador de formas',
+        },
+        en: {
+            toolSelect: 'Select', toolRectangle: 'Rectangle', toolSquare: 'Square', toolCircle: 'Circle',
+            toolEllipse: 'Ellipse', toolLine: 'Line', toolPolygon: 'Polygon', toolText: 'Text',
+            toolDuplicate: 'Duplicate', toolAlign: 'Align', toolGroup: 'Group', toolUngroup: 'Ungroup', toolDelete: 'Delete',
+            toolbarAriaLabel: 'Drawing tools',
+            alignMenuTitle: 'Align selection', alignLeft: 'Left', alignHCenter: 'Center horizontally', alignRight: 'Right',
+            alignTop: 'Top', alignVCenter: 'Center vertically', alignBottom: 'Bottom',
+            pageTitle: 'SHAPE CREATOR', workAreaLabel: 'WORK AREA',
+            undoTitle: 'Undo', redoTitle: 'Redo', importDxfTitle: 'Import DXF', importDxfLabel: 'Import DXF',
+            saveGalleryTitle: 'Save to gallery', saveLabel: 'Save',
+            machineSelectAriaLabel: 'Select machine', canvasAriaLabel: 'Shape canvas',
+            zoomOutTitle: 'Zoom out', zoomInTitle: 'Zoom in', zoomFitTitle: 'Fit',
+            propertiesTitle: 'PROPERTIES', scaleLinkedTitle: 'Keep aspect ratio',
+            scaleLinkedLabel: 'Linked scale', scaleFreeLabel: 'Free scale',
+            propX: 'X (mm)', propY: 'Y (mm)', propWidth: 'Width (mm)', propHeight: 'Height (mm)',
+            propRotation: 'Rotation (°)', propLineWidth: 'Line width (mm)',
+            textContentLabel: 'Text content', textContentPlaceholder: 'Type the text...',
+            resetPropertiesBtn: 'Reset values',
+            operationTitle: 'OPERATION', opCut: 'Cut', opEngrave: 'Engrave', opDot: 'Dotted',
+            materialTitle: 'MATERIAL',
+            matPlywood: 'Plywood', matMdf: 'MDF', matAcrylic: 'Acrylic', matCardboard: 'Cardboard',
+            matAnodizedAluminum: 'Anodized aluminum', matCustom: 'Custom',
+            powerLabel: 'Power (%)', speedLabel: 'Speed (mm/min)',
+            airAssistLabel: 'Air assist', airAssistHint: 'M8 on start · M9 on finish',
+            layersTitle: 'LAYERS', layerHeadNum: '#', layerHeadColor: 'Color', layerHeadMode: 'Mode', layerHeadOutput: 'Output',
+            layerAddBtn: '+ Add', layerColorTitle: 'Color', layerOutputAriaLabel: 'Output',
+            actionsTitle: 'ACTIONS', generateBtn: 'Generate toolpath', previewBtn: 'Preview', queueBtn: 'Send to queue',
+            statusPosition: 'POSITION', statusPath: 'PATH / PROGRESS', statusEstimated: 'ESTIMATED TIME',
+            statusShapes: 'SHAPES', statusMachine: 'MACHINE',
+            statusDisconnected: '● Disconnected', statusConnected: '● Connected',
+            saveModalTitle: 'Save to gallery', saveModalHint: 'The design will be saved as an editable SVG.',
+            saveNameLabel: 'File name', saveFolderLabel: 'Folder', galleryRootOption: 'Gallery / root',
+            cancelBtn: 'Cancel', saveSvgBtn: 'Save SVG', savingBtn: 'Saving...',
+            defaultFileName: 'shapes-design', defaultShapeText: 'Text',
+            toastSelectShapeFirst: 'Select a shape first.',
+            toastSelectTwoShapes: 'Select two or more shapes with Shift.',
+            toastShapesGrouped: '{count} shapes grouped.',
+            toastNotInGroup: 'The selection does not belong to a group.',
+            toastGroupSeparated: 'Group ungrouped.',
+            toastAddVectorShape: 'Add at least one vector shape.',
+            toastPathGenerated: 'Toolpath generated successfully.',
+            toastCouldNotSaveGcode: 'Could not save the G-code.',
+            toastCouldNotAddToQueue: 'Could not add the job to the queue.',
+            toastJobSentToQueue: 'Job sent to the queue.',
+            toastAddShapeBeforeSave: 'Add at least one shape before saving.',
+            toastCouldNotSaveDesign: 'Could not save the design.',
+            toastSavedToGallery: '{filename} was saved to the gallery.',
+            toastSelectDxfFile: 'Select a DXF file.',
+            toastDxfTooLarge: 'The DXF exceeds the 2 MB limit.',
+            toastNoDxfEntities: 'No compatible lines, circles, or polylines were found.',
+            toastInvalidDxfDimensions: 'The DXF dimensions are not valid.',
+            toastDxfImported: '{count} DXF entities imported.',
+            toastMustHaveOneLayer: 'At least one layer must exist.',
+            previewOnToast: 'Preview enabled.', previewOffToast: 'Preview disabled.',
+            navLabel: 'Shape Creator',
+        },
+        de: {
+            toolSelect: 'Auswählen', toolRectangle: 'Rechteck', toolSquare: 'Quadrat', toolCircle: 'Kreis',
+            toolEllipse: 'Ellipse', toolLine: 'Linie', toolPolygon: 'Polygon', toolText: 'Text',
+            toolDuplicate: 'Duplizieren', toolAlign: 'Ausrichten', toolGroup: 'Gruppieren', toolUngroup: 'Gruppierung aufheben', toolDelete: 'Löschen',
+            toolbarAriaLabel: 'Zeichenwerkzeuge',
+            alignMenuTitle: 'Auswahl ausrichten', alignLeft: 'Links', alignHCenter: 'Horizontal zentrieren', alignRight: 'Rechts',
+            alignTop: 'Oben', alignVCenter: 'Vertikal zentrieren', alignBottom: 'Unten',
+            pageTitle: 'FORMEN-EDITOR', workAreaLabel: 'ARBEITSBEREICH',
+            undoTitle: 'Rückgängig', redoTitle: 'Wiederholen', importDxfTitle: 'DXF importieren', importDxfLabel: 'DXF importieren',
+            saveGalleryTitle: 'In Galerie speichern', saveLabel: 'Speichern',
+            machineSelectAriaLabel: 'Maschine auswählen', canvasAriaLabel: 'Formen-Leinwand',
+            zoomOutTitle: 'Verkleinern', zoomInTitle: 'Vergrößern', zoomFitTitle: 'Anpassen',
+            propertiesTitle: 'EIGENSCHAFTEN', scaleLinkedTitle: 'Seitenverhältnis beibehalten',
+            scaleLinkedLabel: 'Skalierung verknüpft', scaleFreeLabel: 'Freie Skalierung',
+            propX: 'X (mm)', propY: 'Y (mm)', propWidth: 'Breite (mm)', propHeight: 'Höhe (mm)',
+            propRotation: 'Rotation (°)', propLineWidth: 'Linienstärke (mm)',
+            textContentLabel: 'Textinhalt', textContentPlaceholder: 'Text eingeben...',
+            resetPropertiesBtn: 'Werte zurücksetzen',
+            operationTitle: 'VORGANG', opCut: 'Schneiden', opEngrave: 'Gravieren', opDot: 'Punktiert',
+            materialTitle: 'MATERIAL',
+            matPlywood: 'Sperrholz', matMdf: 'MDF', matAcrylic: 'Acryl', matCardboard: 'Karton',
+            matAnodizedAluminum: 'Eloxiertes Aluminium', matCustom: 'Benutzerdefiniert',
+            powerLabel: 'Leistung (%)', speedLabel: 'Geschwindigkeit (mm/min)',
+            airAssistLabel: 'Luftunterstützung', airAssistHint: 'M8 beim Start · M9 beim Ende',
+            layersTitle: 'EBENEN', layerHeadNum: '#', layerHeadColor: 'Farbe', layerHeadMode: 'Modus', layerHeadOutput: 'Ausgabe',
+            layerAddBtn: '+ Hinzufügen', layerColorTitle: 'Farbe', layerOutputAriaLabel: 'Ausgabe',
+            actionsTitle: 'AKTIONEN', generateBtn: 'Werkzeugweg erzeugen', previewBtn: 'Vorschau', queueBtn: 'In Warteschlange senden',
+            statusPosition: 'POSITION', statusPath: 'WEG / FORTSCHRITT', statusEstimated: 'GESCHÄTZTE ZEIT',
+            statusShapes: 'FORMEN', statusMachine: 'MASCHINE',
+            statusDisconnected: '● Nicht verbunden', statusConnected: '● Verbunden',
+            saveModalTitle: 'In Galerie speichern', saveModalHint: 'Das Design wird als bearbeitbares SVG gespeichert.',
+            saveNameLabel: 'Dateiname', saveFolderLabel: 'Ordner', galleryRootOption: 'Galerie / Stamm',
+            cancelBtn: 'Abbrechen', saveSvgBtn: 'SVG speichern', savingBtn: 'Speichern...',
+            defaultFileName: 'formen-design', defaultShapeText: 'Text',
+            toastSelectShapeFirst: 'Wähle zuerst eine Form aus.',
+            toastSelectTwoShapes: 'Wähle mit Umschalt zwei oder mehr Formen aus.',
+            toastShapesGrouped: '{count} Formen gruppiert.',
+            toastNotInGroup: 'Die Auswahl gehört zu keiner Gruppe.',
+            toastGroupSeparated: 'Gruppierung aufgehoben.',
+            toastAddVectorShape: 'Füge mindestens eine Vektorform hinzu.',
+            toastPathGenerated: 'Werkzeugweg erfolgreich erzeugt.',
+            toastCouldNotSaveGcode: 'Der G-Code konnte nicht gespeichert werden.',
+            toastCouldNotAddToQueue: 'Der Auftrag konnte nicht zur Warteschlange hinzugefügt werden.',
+            toastJobSentToQueue: 'Auftrag an Warteschlange gesendet.',
+            toastAddShapeBeforeSave: 'Füge vor dem Speichern mindestens eine Form hinzu.',
+            toastCouldNotSaveDesign: 'Das Design konnte nicht gespeichert werden.',
+            toastSavedToGallery: '{filename} wurde in der Galerie gespeichert.',
+            toastSelectDxfFile: 'Wähle eine DXF-Datei aus.',
+            toastDxfTooLarge: 'Die DXF-Datei überschreitet das Limit von 2 MB.',
+            toastNoDxfEntities: 'Keine kompatiblen Linien, Kreise oder Polylinien gefunden.',
+            toastInvalidDxfDimensions: 'Die DXF-Abmessungen sind ungültig.',
+            toastDxfImported: '{count} DXF-Entitäten importiert.',
+            toastMustHaveOneLayer: 'Es muss mindestens eine Ebene vorhanden sein.',
+            previewOnToast: 'Vorschau aktiviert.', previewOffToast: 'Vorschau deaktiviert.',
+            navLabel: 'Formen-Editor',
+        },
+        fr: {
+            toolSelect: 'Sélectionner', toolRectangle: 'Rectangle', toolSquare: 'Carré', toolCircle: 'Cercle',
+            toolEllipse: 'Ellipse', toolLine: 'Ligne', toolPolygon: 'Polygone', toolText: 'Texte',
+            toolDuplicate: 'Dupliquer', toolAlign: 'Aligner', toolGroup: 'Grouper', toolUngroup: 'Dégrouper', toolDelete: 'Supprimer',
+            toolbarAriaLabel: 'Outils de dessin',
+            alignMenuTitle: 'Aligner la sélection', alignLeft: 'Gauche', alignHCenter: 'Centrer horizontalement', alignRight: 'Droite',
+            alignTop: 'Haut', alignVCenter: 'Centrer verticalement', alignBottom: 'Bas',
+            pageTitle: 'CRÉATEUR DE FORMES', workAreaLabel: 'ZONE DE TRAVAIL',
+            undoTitle: 'Annuler', redoTitle: 'Rétablir', importDxfTitle: 'Importer un DXF', importDxfLabel: 'Importer un DXF',
+            saveGalleryTitle: 'Enregistrer dans la galerie', saveLabel: 'Enregistrer',
+            machineSelectAriaLabel: 'Sélectionner la machine', canvasAriaLabel: 'Zone de dessin des formes',
+            zoomOutTitle: 'Dézoomer', zoomInTitle: 'Zoomer', zoomFitTitle: 'Ajuster',
+            propertiesTitle: 'PROPRIÉTÉS', scaleLinkedTitle: 'Conserver les proportions',
+            scaleLinkedLabel: 'Échelle liée', scaleFreeLabel: 'Échelle libre',
+            propX: 'X (mm)', propY: 'Y (mm)', propWidth: 'Largeur (mm)', propHeight: 'Hauteur (mm)',
+            propRotation: 'Rotation (°)', propLineWidth: 'Épaisseur de ligne (mm)',
+            textContentLabel: 'Contenu du texte', textContentPlaceholder: 'Écrivez le texte...',
+            resetPropertiesBtn: 'Réinitialiser les valeurs',
+            operationTitle: 'OPÉRATION', opCut: 'Découpe', opEngrave: 'Gravure', opDot: 'Pointillé',
+            materialTitle: 'MATÉRIAU',
+            matPlywood: 'Contreplaqué', matMdf: 'MDF', matAcrylic: 'Acrylique', matCardboard: 'Carton',
+            matAnodizedAluminum: 'Aluminium anodisé', matCustom: 'Personnalisé',
+            powerLabel: 'Puissance (%)', speedLabel: 'Vitesse (mm/min)',
+            airAssistLabel: "Assistance d'air", airAssistHint: 'M8 au démarrage · M9 à la fin',
+            layersTitle: 'CALQUES', layerHeadNum: '#', layerHeadColor: 'Couleur', layerHeadMode: 'Mode', layerHeadOutput: 'Sortie',
+            layerAddBtn: '+ Ajouter', layerColorTitle: 'Couleur', layerOutputAriaLabel: 'Sortie',
+            actionsTitle: 'ACTIONS', generateBtn: 'Générer la trajectoire', previewBtn: 'Aperçu', queueBtn: "Envoyer à la file d'attente",
+            statusPosition: 'POSITION', statusPath: 'TRAJECTOIRE / PROGRESSION', statusEstimated: 'TEMPS ESTIMÉ',
+            statusShapes: 'FORMES', statusMachine: 'MACHINE',
+            statusDisconnected: '● Déconnectée', statusConnected: '● Connectée',
+            saveModalTitle: 'Enregistrer dans la galerie', saveModalHint: 'Le design sera enregistré comme SVG modifiable.',
+            saveNameLabel: 'Nom du fichier', saveFolderLabel: 'Dossier', galleryRootOption: 'Galerie / racine',
+            cancelBtn: 'Annuler', saveSvgBtn: 'Enregistrer le SVG', savingBtn: 'Enregistrement...',
+            defaultFileName: 'formes-design', defaultShapeText: 'Texte',
+            toastSelectShapeFirst: "Sélectionnez d'abord une forme.",
+            toastSelectTwoShapes: 'Sélectionnez deux formes ou plus avec Maj.',
+            toastShapesGrouped: '{count} formes groupées.',
+            toastNotInGroup: "La sélection n'appartient à aucun groupe.",
+            toastGroupSeparated: 'Groupe dissocié.',
+            toastAddVectorShape: 'Ajoutez au moins une forme vectorielle.',
+            toastPathGenerated: 'Trajectoire générée avec succès.',
+            toastCouldNotSaveGcode: "Impossible d'enregistrer le G-code.",
+            toastCouldNotAddToQueue: "Impossible d'ajouter le travail à la file d'attente.",
+            toastJobSentToQueue: "Travail envoyé à la file d'attente.",
+            toastAddShapeBeforeSave: "Ajoutez au moins une forme avant d'enregistrer.",
+            toastCouldNotSaveDesign: 'Impossible d\'enregistrer le design.',
+            toastSavedToGallery: '{filename} a été enregistré dans la galerie.',
+            toastSelectDxfFile: 'Sélectionnez un fichier DXF.',
+            toastDxfTooLarge: 'Le DXF dépasse la limite de 2 Mo.',
+            toastNoDxfEntities: 'Aucune ligne, cercle ou polyligne compatible trouvé.',
+            toastInvalidDxfDimensions: 'Les dimensions du DXF ne sont pas valides.',
+            toastDxfImported: '{count} entités DXF importées.',
+            toastMustHaveOneLayer: 'Il doit exister au moins un calque.',
+            previewOnToast: 'Aperçu activé.', previewOffToast: 'Aperçu désactivé.',
+            navLabel: 'Créateur de formes',
+        },
+        'pt-BR': {
+            toolSelect: 'Selecionar', toolRectangle: 'Retângulo', toolSquare: 'Quadrado', toolCircle: 'Círculo',
+            toolEllipse: 'Elipse', toolLine: 'Linha', toolPolygon: 'Polígono', toolText: 'Texto',
+            toolDuplicate: 'Duplicar', toolAlign: 'Alinhar', toolGroup: 'Agrupar', toolUngroup: 'Desagrupar', toolDelete: 'Excluir',
+            toolbarAriaLabel: 'Ferramentas de desenho',
+            alignMenuTitle: 'Alinhar seleção', alignLeft: 'Esquerda', alignHCenter: 'Centralizar horizontalmente', alignRight: 'Direita',
+            alignTop: 'Topo', alignVCenter: 'Centralizar verticalmente', alignBottom: 'Base',
+            pageTitle: 'CRIADOR DE FORMAS', workAreaLabel: 'ÁREA DE TRABALHO',
+            undoTitle: 'Desfazer', redoTitle: 'Refazer', importDxfTitle: 'Importar DXF', importDxfLabel: 'Importar DXF',
+            saveGalleryTitle: 'Salvar na galeria', saveLabel: 'Salvar',
+            machineSelectAriaLabel: 'Selecionar máquina', canvasAriaLabel: 'Tela de formas',
+            zoomOutTitle: 'Diminuir zoom', zoomInTitle: 'Aumentar zoom', zoomFitTitle: 'Ajustar',
+            propertiesTitle: 'PROPRIEDADES', scaleLinkedTitle: 'Manter proporção',
+            scaleLinkedLabel: 'Escala vinculada', scaleFreeLabel: 'Escala livre',
+            propX: 'X (mm)', propY: 'Y (mm)', propWidth: 'Largura (mm)', propHeight: 'Altura (mm)',
+            propRotation: 'Rotação (°)', propLineWidth: 'Espessura da linha (mm)',
+            textContentLabel: 'Conteúdo do texto', textContentPlaceholder: 'Digite o texto...',
+            resetPropertiesBtn: 'Redefinir valores',
+            operationTitle: 'OPERAÇÃO', opCut: 'Corte', opEngrave: 'Gravação', opDot: 'Pontilhado',
+            materialTitle: 'MATERIAL',
+            matPlywood: 'Compensado', matMdf: 'MDF', matAcrylic: 'Acrílico', matCardboard: 'Papelão',
+            matAnodizedAluminum: 'Alumínio anodizado', matCustom: 'Personalizado',
+            powerLabel: 'Potência (%)', speedLabel: 'Velocidade (mm/min)',
+            airAssistLabel: 'Assistência de ar', airAssistHint: 'M8 ao iniciar · M9 ao terminar',
+            layersTitle: 'CAMADAS', layerHeadNum: '#', layerHeadColor: 'Cor', layerHeadMode: 'Modo', layerHeadOutput: 'Saída',
+            layerAddBtn: '+ Adicionar', layerColorTitle: 'Cor', layerOutputAriaLabel: 'Saída',
+            actionsTitle: 'AÇÕES', generateBtn: 'Gerar trajetória', previewBtn: 'Pré-visualização', queueBtn: 'Enviar para a fila',
+            statusPosition: 'POSIÇÃO', statusPath: 'TRAJETO / PROGRESSO', statusEstimated: 'TEMPO ESTIMADO',
+            statusShapes: 'FORMAS', statusMachine: 'MÁQUINA',
+            statusDisconnected: '● Sem conexão', statusConnected: '● Conectada',
+            saveModalTitle: 'Salvar na galeria', saveModalHint: 'O design será salvo como SVG editável.',
+            saveNameLabel: 'Nome do arquivo', saveFolderLabel: 'Pasta', galleryRootOption: 'Galeria / raiz',
+            cancelBtn: 'Cancelar', saveSvgBtn: 'Salvar SVG', savingBtn: 'Salvando...',
+            defaultFileName: 'design-formas', defaultShapeText: 'Texto',
+            toastSelectShapeFirst: 'Selecione uma forma primeiro.',
+            toastSelectTwoShapes: 'Selecione duas ou mais formas com Shift.',
+            toastShapesGrouped: '{count} formas agrupadas.',
+            toastNotInGroup: 'A seleção não pertence a um grupo.',
+            toastGroupSeparated: 'Grupo desfeito.',
+            toastAddVectorShape: 'Adicione ao menos uma forma vetorial.',
+            toastPathGenerated: 'Trajetória gerada com sucesso.',
+            toastCouldNotSaveGcode: 'Não foi possível salvar o G-code.',
+            toastCouldNotAddToQueue: 'Não foi possível adicionar o trabalho à fila.',
+            toastJobSentToQueue: 'Trabalho enviado para a fila.',
+            toastAddShapeBeforeSave: 'Adicione ao menos uma forma antes de salvar.',
+            toastCouldNotSaveDesign: 'Não foi possível salvar o design.',
+            toastSavedToGallery: '{filename} foi salvo na galeria.',
+            toastSelectDxfFile: 'Selecione um arquivo DXF.',
+            toastDxfTooLarge: 'O DXF ultrapassa o limite de 2 MB.',
+            toastNoDxfEntities: 'Nenhuma linha, círculo ou polilinha compatível foi encontrada.',
+            toastInvalidDxfDimensions: 'As dimensões do DXF não são válidas.',
+            toastDxfImported: '{count} entidades DXF importadas.',
+            toastMustHaveOneLayer: 'Deve existir ao menos uma camada.',
+            previewOnToast: 'Pré-visualização ativada.', previewOffToast: 'Pré-visualização desativada.',
+            navLabel: 'Criador de formas',
+        },
+    };
+
+    function lang() {
+        let value = document.documentElement.lang || localStorage.getItem('language') || 'es';
+        value = String(value).toLowerCase();
+        if (value.startsWith('pt')) return 'pt-BR';
+        if (I18N[value]) return value;
+        return 'en';
+    }
+
+    function tr(key, vars) {
+        const dict = I18N[lang()] || I18N.en;
+        let text = dict[key] ?? I18N.en[key] ?? key;
+        if (vars) {
+            Object.entries(vars).forEach(([name, value]) => {
+                text = text.replace(`{${name}}`, value);
+            });
+        }
+        return text;
+    }
+
     const tools = [
-        ['select', 'Seleccionar', '<path d="m5 3 14 9-6 2-3 6Z"/>'],
-        ['rectangle', 'Rectángulo', '<rect x="4" y="5" width="16" height="14" rx="2"/>'],
-        ['square', 'Cuadrado', '<rect x="4" y="4" width="16" height="16" rx="1"/>'],
-        ['circle', 'Círculo', '<circle cx="12" cy="12" r="8"/>'],
-        ['ellipse', 'Elipse', '<ellipse cx="12" cy="12" rx="9" ry="6"/>'],
-        ['line', 'Línea', '<path d="m5 19 14-14"/>'],
-        ['polygon', 'Polígono', '<path d="m7 3 10 0 5 9-5 9H7l-5-9Z"/>'],
-        ['text', 'Texto', '<path d="M5 4h14M12 4v16M8 20h8"/>'],
-        ['duplicate', 'Duplicar', '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>'],
-        ['align', 'Alinear', '<path d="M4 4v16M8 7h9M8 12h12M8 17h7"/>'],
-        ['group', 'Agrupar', '<rect x="4" y="4" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/><path d="M14 7h3v3M10 17H7v-3"/>'],
-        ['ungroup', 'Desagrupar', '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><rect x="9" y="9" width="6" height="6"/>'],
-        ['delete', 'Borrar', '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/>']
+        ['select', tr('toolSelect'), '<path d="m5 3 14 9-6 2-3 6Z"/>'],
+        ['rectangle', tr('toolRectangle'), '<rect x="4" y="5" width="16" height="14" rx="2"/>'],
+        ['square', tr('toolSquare'), '<rect x="4" y="4" width="16" height="16" rx="1"/>'],
+        ['circle', tr('toolCircle'), '<circle cx="12" cy="12" r="8"/>'],
+        ['ellipse', tr('toolEllipse'), '<ellipse cx="12" cy="12" rx="9" ry="6"/>'],
+        ['line', tr('toolLine'), '<path d="m5 19 14-14"/>'],
+        ['polygon', tr('toolPolygon'), '<path d="m7 3 10 0 5 9-5 9H7l-5-9Z"/>'],
+        ['text', tr('toolText'), '<path d="M5 4h14M12 4v16M8 20h8"/>'],
+        ['duplicate', tr('toolDuplicate'), '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>'],
+        ['align', tr('toolAlign'), '<path d="M4 4v16M8 7h9M8 12h12M8 17h7"/>'],
+        ['group', tr('toolGroup'), '<rect x="4" y="4" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/><path d="M14 7h3v3M10 17H7v-3"/>'],
+        ['ungroup', tr('toolUngroup'), '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><rect x="9" y="9" width="6" height="6"/>'],
+        ['delete', tr('toolDelete'), '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/>']
     ];
 
     const state = {
@@ -32,7 +336,7 @@
         preview: false,
         layers: [{ id: 1, name: '01', color: '#34f58b', mode: 'cut', output: true }],
         activeLayerId: 1,
-        material: 'Madera contrachapada',
+        material: tr('matPlywood'),
         power: 80,
         speed: 1800,
         operation: 'cut',
@@ -113,17 +417,17 @@
         return `
             <section id="shape-creator-section" class="view-section sc-section" style="display:none">
                 <main class="sc-shell">
-                    <aside class="sc-toolbar" aria-label="Herramientas de dibujo">
+                    <aside class="sc-toolbar" aria-label="${tr('toolbarAriaLabel')}">
                         ${tools.map(([id, label, body], index) => `${index === 8 || index === 12 ? '<span class="sc-tool-separator"></span>' : ''}<button type="button" class="sc-tool${id === 'select' ? ' active' : ''}${id === 'delete' ? ' danger' : ''}" data-sc-tool="${id}" title="${label}">${icon(body)}<span>${label}</span></button>`).join('')}
                         <div class="sc-align-menu" id="sc-align-menu" hidden>
-                            <strong>Alinear selección</strong>
+                            <strong>${tr('alignMenuTitle')}</strong>
                             <div>
-                                <button type="button" data-sc-align="left" title="Izquierda">${icon('<path d="M4 3v18M8 7h11M8 17h7"/>',17)}</button>
-                                <button type="button" data-sc-align="hcenter" title="Centro horizontal">${icon('<path d="M12 3v18M5 7h14M7 17h10"/>',17)}</button>
-                                <button type="button" data-sc-align="right" title="Derecha">${icon('<path d="M20 3v18M5 7h11M9 17h7"/>',17)}</button>
-                                <button type="button" data-sc-align="top" title="Arriba">${icon('<path d="M3 4h18M7 8v11M17 8v7"/>',17)}</button>
-                                <button type="button" data-sc-align="vcenter" title="Centro vertical">${icon('<path d="M3 12h18M7 5v14M17 7v10"/>',17)}</button>
-                                <button type="button" data-sc-align="bottom" title="Abajo">${icon('<path d="M3 20h18M7 5v11M17 9v7"/>',17)}</button>
+                                <button type="button" data-sc-align="left" title="${tr('alignLeft')}">${icon('<path d="M4 3v18M8 7h11M8 17h7"/>',17)}</button>
+                                <button type="button" data-sc-align="hcenter" title="${tr('alignHCenter')}">${icon('<path d="M12 3v18M5 7h14M7 17h10"/>',17)}</button>
+                                <button type="button" data-sc-align="right" title="${tr('alignRight')}">${icon('<path d="M20 3v18M5 7h11M9 17h7"/>',17)}</button>
+                                <button type="button" data-sc-align="top" title="${tr('alignTop')}">${icon('<path d="M3 4h18M7 8v11M17 8v7"/>',17)}</button>
+                                <button type="button" data-sc-align="vcenter" title="${tr('alignVCenter')}">${icon('<path d="M3 12h18M7 5v14M17 7v10"/>',17)}</button>
+                                <button type="button" data-sc-align="bottom" title="${tr('alignBottom')}">${icon('<path d="M3 20h18M7 5v11M17 9v7"/>',17)}</button>
                             </div>
                         </div>
                     </aside>
@@ -131,20 +435,20 @@
                         <section class="sc-work-card">
                             <header class="sc-work-header">
                                 <div>
-                                    <div class="sc-title-row">${icon('<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>', 27)}<h1>CREADOR DE FORMAS</h1></div>
-                                    <div class="sc-work-label">ÁREA DE TRABAJO <strong id="sc-work-dimensions">600 × 600 mm</strong></div>
+                                    <div class="sc-title-row">${icon('<path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>', 27)}<h1>${tr('pageTitle')}</h1></div>
+                                    <div class="sc-work-label">${tr('workAreaLabel')} <strong id="sc-work-dimensions">600 × 600 mm</strong></div>
                                 </div>
                                 <div class="sc-document-actions">
-                                    <button type="button" id="sc-undo-btn" title="Deshacer" disabled>${icon('<path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6"/>', 18)}</button>
-                                    <button type="button" id="sc-redo-btn" title="Rehacer" disabled>${icon('<path d="m15 7 5 5-5 5M19 12h-8a6 6 0 0 0-6 6"/>', 18)}</button>
-                                    <button type="button" id="sc-import-btn" title="Importar DXF">${icon('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>', 18)}<span>Importar DXF</span></button>
-                                    <button type="button" class="primary" id="sc-save-btn" title="Guardar en galería">${icon('<path d="M5 3h12l2 2v16H5zM8 3v6h8V3M8 21v-8h8v8"/>', 18)}<span>Guardar</span></button>
+                                    <button type="button" id="sc-undo-btn" title="${tr('undoTitle')}" disabled>${icon('<path d="M9 7 4 12l5 5M5 12h8a6 6 0 0 1 6 6"/>', 18)}</button>
+                                    <button type="button" id="sc-redo-btn" title="${tr('redoTitle')}" disabled>${icon('<path d="m15 7 5 5-5 5M19 12h-8a6 6 0 0 0-6 6"/>', 18)}</button>
+                                    <button type="button" id="sc-import-btn" title="${tr('importDxfTitle')}">${icon('<path d="M12 3v12M7 10l5 5 5-5M4 19h16"/>', 18)}<span>${tr('importDxfLabel')}</span></button>
+                                    <button type="button" class="primary" id="sc-save-btn" title="${tr('saveGalleryTitle')}">${icon('<path d="M5 3h12l2 2v16H5zM8 3v6h8V3M8 21v-8h8v8"/>', 18)}<span>${tr('saveLabel')}</span></button>
                                     <input type="file" id="sc-dxf-input" accept=".dxf,application/dxf,text/plain" hidden>
                                 </div>
                                 <label class="sc-machine-picker">
                                     ${icon('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 3v18M16 3v18M8 8h8M8 16h8"/>')}
                                     <span><strong id="sc-machine-name">NOPAL 600 PRO</strong><small id="sc-machine-dimensions">600 × 600 mm</small></span>
-                                    <select id="sc-machine-select" aria-label="Seleccionar máquina"></select>
+                                    <select id="sc-machine-select" aria-label="${tr('machineSelectAriaLabel')}"></select>
                                     ${icon('<path d="m8 10 4 4 4-4"/>', 17)}
                                 </label>
                             </header>
@@ -152,7 +456,7 @@
                                 <div class="sc-ruler sc-ruler-horizontal" id="sc-ruler-horizontal"></div>
                                 <div class="sc-ruler sc-ruler-vertical" id="sc-ruler-vertical"></div>
                                 <div class="sc-ruler-corner">mm</div>
-                                <svg id="sc-canvas" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet" aria-label="Lienzo de formas">
+                                <svg id="sc-canvas" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet" aria-label="${tr('canvasAriaLabel')}">
                                     <defs>
                                         <pattern id="sc-minor-grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M10 0H0V10" fill="none" stroke="rgba(52,245,139,.09)" stroke-width=".45"/></pattern>
                                         <pattern id="sc-major-grid" width="50" height="50" patternUnits="userSpaceOnUse"><rect width="50" height="50" fill="url(#sc-minor-grid)"/><path d="M50 0H0V50" fill="none" stroke="rgba(52,245,139,.22)" stroke-width=".8"/></pattern>
@@ -163,10 +467,10 @@
                                 </svg>
                                 <div class="sc-axis"><span class="sc-axis-y">Y</span><i></i><span class="sc-axis-x">X</span></div>
                                 <div class="sc-zoom-controls">
-                                    <button type="button" data-sc-zoom="out" title="Alejar">${icon('<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4M8 11h6"/>', 18)}</button>
+                                    <button type="button" data-sc-zoom="out" title="${tr('zoomOutTitle')}">${icon('<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4M8 11h6"/>', 18)}</button>
                                     <span id="sc-zoom-label">100%</span>
-                                    <button type="button" data-sc-zoom="in" title="Acercar">${icon('<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4M8 11h6M11 8v6"/>', 18)}</button>
-                                    <button type="button" data-sc-zoom="fit" title="Ajustar">${icon('<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>', 18)}</button>
+                                    <button type="button" data-sc-zoom="in" title="${tr('zoomInTitle')}">${icon('<circle cx="11" cy="11" r="7"/><path d="m16 16 4 4M8 11h6M11 8v6"/>', 18)}</button>
+                                    <button type="button" data-sc-zoom="fit" title="${tr('zoomFitTitle')}">${icon('<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>', 18)}</button>
                                 </div>
                                 <div class="sc-pointer-readout" id="sc-pointer-readout">X 0.00 · Y 0.00</div>
                             </div>
@@ -174,56 +478,56 @@
 
                         <section class="sc-panels">
                             <article class="sc-panel sc-properties-panel">
-                                <div class="sc-panel-title-row"><h2>PROPIEDADES</h2><button type="button" class="sc-scale-link active" id="sc-scale-link" title="Mantener proporción">${icon('<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/>', 16)}<span>Escala ligada</span></button></div>
+                                <div class="sc-panel-title-row"><h2>${tr('propertiesTitle')}</h2><button type="button" class="sc-scale-link active" id="sc-scale-link" title="${tr('scaleLinkedTitle')}">${icon('<path d="M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1"/>', 16)}<span>${tr('scaleLinkedLabel')}</span></button></div>
                                 <div class="sc-property-grid">
-                                    ${[['x','X (mm)'],['y','Y (mm)'],['width','Ancho (mm)'],['height','Alto (mm)'],['rotation','Rotación (°)'],['lineWidth','Grosor de línea (mm)']].map(([key,label]) => `<label><span>${label}</span><input type="number" step="0.1" data-sc-property="${key}" value="0" ${key === 'lineWidth' ? 'min="0.01"' : ''}></label>`).join('')}
+                                    ${[['x',tr('propX')],['y',tr('propY')],['width',tr('propWidth')],['height',tr('propHeight')],['rotation',tr('propRotation')],['lineWidth',tr('propLineWidth')]].map(([key,label]) => `<label><span>${label}</span><input type="number" step="0.1" data-sc-property="${key}" value="0" ${key === 'lineWidth' ? 'min="0.01"' : ''}></label>`).join('')}
                                 </div>
-                                <label class="sc-text-property" id="sc-text-property" hidden><span>Contenido del texto</span><input type="text" id="sc-text-input" maxlength="120" placeholder="Escribe el texto..."></label>
-                                <button type="button" class="sc-reset-btn" id="sc-reset-properties">${icon('<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>', 15)} Restablecer valores</button>
+                                <label class="sc-text-property" id="sc-text-property" hidden><span>${tr('textContentLabel')}</span><input type="text" id="sc-text-input" maxlength="120" placeholder="${tr('textContentPlaceholder')}"></label>
+                                <button type="button" class="sc-reset-btn" id="sc-reset-properties">${icon('<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>', 15)} ${tr('resetPropertiesBtn')}</button>
                             </article>
                             <article class="sc-panel sc-operation-panel">
-                                <h2>OPERACIÓN</h2>
+                                <h2>${tr('operationTitle')}</h2>
                                 <div class="sc-operation-list">
-                                    <button class="active" data-sc-operation="cut">${icon('<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/>')}<span>Corte</span></button>
-                                    <button data-sc-operation="engrave">${icon('<path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/>')}<span>Grabado</span></button>
-                                    <button data-sc-operation="dot">${icon('<circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="19" cy="5" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="19" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/><circle cx="19" cy="19" r="1" fill="currentColor"/>')}<span>Punteado</span></button>
+                                    <button class="active" data-sc-operation="cut">${icon('<path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4"/>')}<span>${tr('opCut')}</span></button>
+                                    <button data-sc-operation="engrave">${icon('<path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/>')}<span>${tr('opEngrave')}</span></button>
+                                    <button data-sc-operation="dot">${icon('<circle cx="5" cy="5" r="1" fill="currentColor"/><circle cx="12" cy="5" r="1" fill="currentColor"/><circle cx="19" cy="5" r="1" fill="currentColor"/><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/><circle cx="5" cy="19" r="1" fill="currentColor"/><circle cx="12" cy="19" r="1" fill="currentColor"/><circle cx="19" cy="19" r="1" fill="currentColor"/>')}<span>${tr('opDot')}</span></button>
                                 </div>
                             </article>
                             <article class="sc-panel sc-material-panel">
-                                <h2>MATERIAL</h2>
-                                <label><select id="sc-material-select"><option>Madera contrachapada</option><option>MDF</option><option>Acrílico</option><option>Cartón</option><option>Aluminio anodizado</option><option>Personalizado</option></select></label>
-                                <label><span>Potencia (%)</span><input id="sc-power-input" type="number" min="0" max="100" value="80"></label>
-                                <label><span>Velocidad (mm/min)</span><input id="sc-speed-input" type="number" min="1" value="1800"></label>
-                                <label class="sc-air-assist"><input id="sc-air-assist-input" type="checkbox"><span>Asistencia de aire</span><small>M8 al iniciar · M9 al terminar</small></label>
+                                <h2>${tr('materialTitle')}</h2>
+                                <label><select id="sc-material-select"><option>${tr('matPlywood')}</option><option>${tr('matMdf')}</option><option>${tr('matAcrylic')}</option><option>${tr('matCardboard')}</option><option>${tr('matAnodizedAluminum')}</option><option>${tr('matCustom')}</option></select></label>
+                                <label><span>${tr('powerLabel')}</span><input id="sc-power-input" type="number" min="0" max="100" value="80"></label>
+                                <label><span>${tr('speedLabel')}</span><input id="sc-speed-input" type="number" min="1" value="1800"></label>
+                                <label class="sc-air-assist"><input id="sc-air-assist-input" type="checkbox"><span>${tr('airAssistLabel')}</span><small>${tr('airAssistHint')}</small></label>
                             </article>
                             <article class="sc-panel sc-layers-panel">
-                                <h2>CAPAS</h2>
-                                <div class="sc-layer-head"><span>#</span><span>Color</span><span>Modo</span><span>Salida</span></div>
+                                <h2>${tr('layersTitle')}</h2>
+                                <div class="sc-layer-head"><span>${tr('layerHeadNum')}</span><span>${tr('layerHeadColor')}</span><span>${tr('layerHeadMode')}</span><span>${tr('layerHeadOutput')}</span></div>
                                 <div id="sc-layers-list"></div>
-                                <div class="sc-layer-actions"><button data-sc-layer-action="add">+ Añadir</button><button data-sc-layer-action="duplicate">${icon(tools[8][2],16)}</button><button class="danger" data-sc-layer-action="delete">${icon(tools[12][2],16)}</button></div>
+                                <div class="sc-layer-actions"><button data-sc-layer-action="add">${tr('layerAddBtn')}</button><button data-sc-layer-action="duplicate">${icon(tools[8][2],16)}</button><button class="danger" data-sc-layer-action="delete">${icon(tools[12][2],16)}</button></div>
                             </article>
                             <article class="sc-panel sc-actions-panel">
-                                <h2>ACCIONES</h2>
-                                <button class="primary" id="sc-generate-btn">${icon('<path d="M4 18c4-7 6 3 10-4s6-3 6-8M4 6v4h4M16 4h4v4"/>')}<span>Generar trayecto</span></button>
-                                <button id="sc-preview-btn">${icon('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>')}<span>Vista previa</span></button>
-                                <button id="sc-queue-btn">${icon('<path d="m7 4 13 8-13 8Z"/><path d="M3 4v16"/>')}<span>Enviar a cola</span></button>
+                                <h2>${tr('actionsTitle')}</h2>
+                                <button class="primary" id="sc-generate-btn">${icon('<path d="M4 18c4-7 6 3 10-4s6-3 6-8M4 6v4h4M16 4h4v4"/>')}<span>${tr('generateBtn')}</span></button>
+                                <button id="sc-preview-btn">${icon('<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>')}<span>${tr('previewBtn')}</span></button>
+                                <button id="sc-queue-btn">${icon('<path d="m7 4 13 8-13 8Z"/><path d="M3 4v16"/>')}<span>${tr('queueBtn')}</span></button>
                             </article>
                         </section>
 
                         <footer class="sc-statusbar">
-                            <div><span>POSICIÓN</span><strong id="sc-status-position">X0.00 Y0.00</strong></div>
-                            <div><span>TRAYECTO / PROGRESO</span><strong id="sc-status-path">0 mm / 0%</strong><i><b id="sc-status-progress"></b></i></div>
-                            <div><span>TIEMPO ESTIMADO</span><strong id="sc-status-estimated">--:--</strong></div>
-                            <div><span>FORMAS</span><strong id="sc-status-shapes">0</strong></div>
-                            <div><span>MÁQUINA</span><strong class="sc-machine-status" id="sc-status-machine">● Sin conexión</strong></div>
+                            <div><span>${tr('statusPosition')}</span><strong id="sc-status-position">X0.00 Y0.00</strong></div>
+                            <div><span>${tr('statusPath')}</span><strong id="sc-status-path">0 mm / 0%</strong><i><b id="sc-status-progress"></b></i></div>
+                            <div><span>${tr('statusEstimated')}</span><strong id="sc-status-estimated">--:--</strong></div>
+                            <div><span>${tr('statusShapes')}</span><strong id="sc-status-shapes">0</strong></div>
+                            <div><span>${tr('statusMachine')}</span><strong class="sc-machine-status" id="sc-status-machine">${tr('statusDisconnected')}</strong></div>
                         </footer>
                         <div class="sc-save-modal" id="sc-save-modal" hidden>
                             <div class="sc-save-backdrop" data-sc-close-save></div>
                             <form class="sc-save-dialog" id="sc-save-form">
-                                <div class="sc-save-dialog-header"><div>${icon('<path d="M5 3h12l2 2v16H5zM8 3v6h8V3"/>')}<span><strong>Guardar en galería</strong><small>El diseño se guardará como SVG editable.</small></span></div><button type="button" data-sc-close-save>×</button></div>
-                                <label><span>Nombre del archivo</span><input id="sc-save-name" type="text" maxlength="80" value="diseño-formas" required></label>
-                                <label><span>Carpeta</span><select id="sc-save-folder"><option value="">Galería / raíz</option></select></label>
-                                <div class="sc-save-dialog-actions"><button type="button" data-sc-close-save>Cancelar</button><button type="submit" class="primary" id="sc-save-confirm">Guardar SVG</button></div>
+                                <div class="sc-save-dialog-header"><div>${icon('<path d="M5 3h12l2 2v16H5zM8 3v6h8V3"/>')}<span><strong>${tr('saveModalTitle')}</strong><small>${tr('saveModalHint')}</small></span></div><button type="button" data-sc-close-save>×</button></div>
+                                <label><span>${tr('saveNameLabel')}</span><input id="sc-save-name" type="text" maxlength="80" value="${tr('defaultFileName')}" required></label>
+                                <label><span>${tr('saveFolderLabel')}</span><select id="sc-save-folder"><option value="">${tr('galleryRootOption')}</option></select></label>
+                                <div class="sc-save-dialog-actions"><button type="button" data-sc-close-save>${tr('cancelBtn')}</button><button type="submit" class="primary" id="sc-save-confirm">${tr('saveSvgBtn')}</button></div>
                             </form>
                         </div>
                     </div>
@@ -239,8 +543,8 @@
         navButton.className = 'nav-item';
         navButton.dataset.section = 'shape-creator';
         navButton.dataset.pluginNav = PLUGIN_ID;
-        navButton.title = 'Creador de formas';
-        navButton.innerHTML = `${icon('<rect x="3" y="3" width="7" height="7" rx="1"/><circle cx="17.5" cy="6.5" r="3.5"/><path d="m4 20 4-7 4 7Z"/><path d="M15 14h6v6h-6z"/>', 20)}<span>Creador de formas</span>`;
+        navButton.title = tr('navLabel');
+        navButton.innerHTML = `${icon('<rect x="3" y="3" width="7" height="7" rx="1"/><circle cx="17.5" cy="6.5" r="3.5"/><path d="m4 20 4-7 4 7Z"/><path d="M15 14h6v6h-6z"/>', 20)}<span>${esc(tr('navLabel'))}</span>`;
         navButton.addEventListener('click', () => window.switchSection?.('shape-creator'));
         pluginsContainer?.appendChild(navButton);
 
@@ -281,7 +585,7 @@
 
     function newShape(type, point) {
         const layer = activeLayer();
-        const shape = { id: nextShapeId++, type, x: point.x, y: point.y, width: 0.1, height: 0.1, rotation: 0, lineWidth: 0.1, layerId: layer.id, text: 'Texto' };
+        const shape = { id: nextShapeId++, type, x: point.x, y: point.y, width: 0.1, height: 0.1, rotation: 0, lineWidth: 0.1, layerId: layer.id, text: tr('defaultShapeText') };
         state.shapes.push(shape);
         state.selectedId = shape.id;
         state.selectedIds = [shape.id];
@@ -351,7 +655,7 @@
     function runToolAction(action) {
         if (action === 'delete') return deleteSelected();
         const selection = selectedShapes();
-        if (!selection.length) return toast('Selecciona una forma primero.', 'warning');
+        if (!selection.length) return toast(tr('toastSelectShapeFirst'), 'warning');
         if (action === 'duplicate') {
             const newGroup = selection.length > 1 ? nextGroupId++ : null;
             const copies = selection.map(shape => ({ ...shape, id: nextShapeId++, groupId: newGroup, x: clamp(shape.x + 12, 0, state.machine.width - Math.abs(shape.width)), y: clamp(shape.y + 12, 0, state.machine.height - Math.abs(shape.height)) }));
@@ -359,12 +663,12 @@
         } else if (action === 'align') {
             const menu = root.querySelector('#sc-align-menu'); menu.hidden = !menu.hidden;
         } else if (action === 'group') {
-            if (selection.length < 2) return toast('Selecciona dos o más formas con Mayús.', 'warning');
-            const groupId = nextGroupId++; selection.forEach(shape => { shape.groupId = groupId; }); renderShapes(); pushHistory(); toast(`${selection.length} formas agrupadas.`);
+            if (selection.length < 2) return toast(tr('toastSelectTwoShapes'), 'warning');
+            const groupId = nextGroupId++; selection.forEach(shape => { shape.groupId = groupId; }); renderShapes(); pushHistory(); toast(tr('toastShapesGrouped', { count: selection.length }));
         } else if (action === 'ungroup') {
             const groupIds = new Set(selection.map(shape => shape.groupId).filter(Boolean));
-            if (!groupIds.size) return toast('La selección no pertenece a un grupo.', 'warning');
-            state.shapes.forEach(shape => { if (groupIds.has(shape.groupId)) delete shape.groupId; }); renderShapes(); pushHistory(); toast('Grupo separado.');
+            if (!groupIds.size) return toast(tr('toastNotInGroup'), 'warning');
+            state.shapes.forEach(shape => { if (groupIds.has(shape.groupId)) delete shape.groupId; }); renderShapes(); pushHistory(); toast(tr('toastGroupSeparated'));
         }
     }
 
@@ -556,13 +860,13 @@
     function updateMachineStatus(connected) {
         state.machine.connected = connected;
         const element = root.querySelector('#sc-status-machine');
-        element.textContent = connected ? '● Conectada' : '● Sin conexión';
+        element.textContent = connected ? tr('statusConnected') : tr('statusDisconnected');
         element.classList.toggle('connected', connected);
     }
 
     function renderLayers() {
         const list = root.querySelector('#sc-layers-list');
-        list.innerHTML = state.layers.map(layer => `<button type="button" class="sc-layer-row${layer.id === state.activeLayerId ? ' active' : ''}" data-sc-layer-id="${layer.id}"><span>${esc(layer.name)}</span><input type="color" value="${layer.color}" data-sc-layer-color="${layer.id}" title="Color"><span>${layer.mode === 'cut' ? 'Corte' : layer.mode === 'engrave' ? 'Grabado' : 'Punteado'}</span><input type="checkbox" ${layer.output ? 'checked' : ''} data-sc-layer-output="${layer.id}" aria-label="Salida"></button>`).join('');
+        list.innerHTML = state.layers.map(layer => `<button type="button" class="sc-layer-row${layer.id === state.activeLayerId ? ' active' : ''}" data-sc-layer-id="${layer.id}"><span>${esc(layer.name)}</span><input type="color" value="${layer.color}" data-sc-layer-color="${layer.id}" title="${tr('layerColorTitle')}"><span>${layer.mode === 'cut' ? tr('opCut') : layer.mode === 'engrave' ? tr('opEngrave') : tr('opDot')}</span><input type="checkbox" ${layer.output ? 'checked' : ''} data-sc-layer-output="${layer.id}" aria-label="${tr('layerOutputAriaLabel')}"></button>`).join('');
     }
 
     function setOperation(mode, record = true) {
@@ -596,7 +900,7 @@
 
     function generateToolpath() {
         const outputShapes = state.shapes.filter(shape => state.layers.find(layer => layer.id === shape.layerId)?.output && shape.type !== 'text');
-        if (!outputShapes.length) { toast('Agrega al menos una forma vectorial.', 'warning'); return ''; }
+        if (!outputShapes.length) { toast(tr('toastAddVectorShape'), 'warning'); return ''; }
         const lines = ['; NOPAL Shape Creator', `; Machine: ${state.machine.name}`, 'G21', 'G90', 'M4'];
         if (state.airAssist) lines.push('M8 ; Air assist on');
         outputShapes.forEach(shape => {
@@ -614,7 +918,7 @@
         root.querySelector('#sc-status-path').textContent = `${distance.toFixed(1)} mm / 100%`;
         root.querySelector('#sc-status-progress').style.width = '100%';
         root.querySelector('#sc-status-estimated').textContent = `${String(Math.floor(seconds/60)).padStart(2,'0')}:${String(seconds%60).padStart(2,'0')}`;
-        toast('Trayecto generado correctamente.');
+        toast(tr('toastPathGenerated'));
         return state.generatedGcode;
     }
 
@@ -627,11 +931,11 @@
             upload.append('file', new File([gcode], filename, { type: 'text/plain' }));
             upload.append('type', 'gcode'); upload.append('path', 'Creador de Formas');
             const uploadResponse = await fetch('/api/upload', { method: 'POST', body: upload });
-            if (!uploadResponse.ok) throw new Error('No se pudo guardar el G-Code.');
+            if (!uploadResponse.ok) throw new Error(tr('toastCouldNotSaveGcode'));
             const queue = new FormData(); queue.append('path', `Creador de Formas/${filename}`); queue.append('kind', state.machine.kind === 'cnc' ? 'cnc' : 'laser');
             const queueResponse = await fetch('/api/laser/queue/add', { method: 'POST', body: queue });
-            if (!queueResponse.ok) throw new Error('No se pudo agregar el trabajo a la cola.');
-            toast('Trabajo enviado a la cola.');
+            if (!queueResponse.ok) throw new Error(tr('toastCouldNotAddToQueue'));
+            toast(tr('toastJobSentToQueue'));
         } catch (error) { toast(error.message, 'error'); }
     }
 
@@ -653,7 +957,7 @@
 
     async function loadGalleryFolders() {
         const select = root.querySelector('#sc-save-folder');
-        select.innerHTML = '<option value="">Galería / raíz</option>';
+        select.innerHTML = `<option value="">${tr('galleryRootOption')}</option>`;
         const queue = [{ path: '', depth: 0 }];
         const folders = [];
         while (queue.length && folders.length < 100) {
@@ -672,7 +976,7 @@
     }
 
     async function openSaveDialog() {
-        if (!state.shapes.length) return toast('Agrega al menos una forma antes de guardar.', 'warning');
+        if (!state.shapes.length) return toast(tr('toastAddShapeBeforeSave'), 'warning');
         const modal = root.querySelector('#sc-save-modal');
         modal.hidden = false;
         root.querySelector('#sc-save-name').focus();
@@ -684,21 +988,21 @@
     async function saveDesign(event) {
         event.preventDefault();
         const rawName = root.querySelector('#sc-save-name').value.trim();
-        const filename = `${rawName.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ _-]/g, '').trim() || 'diseño-formas'}.svg`;
+        const filename = `${rawName.replace(/[^a-zA-Z0-9áéíóúÁÉÍÓÚñÑ _-]/g, '').trim() || tr('defaultFileName')}.svg`;
         const folder = root.querySelector('#sc-save-folder').value;
         const button = root.querySelector('#sc-save-confirm');
-        button.disabled = true; button.textContent = 'Guardando...';
+        button.disabled = true; button.textContent = tr('savingBtn');
         try {
             const form = new FormData();
             form.append('file', new File([designToSvg()], filename, { type: 'image/svg+xml' }));
             form.append('type', 'model'); form.append('path', folder);
             const response = await fetch('/api/upload', { method: 'POST', body: form });
-            if (!response.ok) throw new Error('No se pudo guardar el diseño.');
+            if (!response.ok) throw new Error(tr('toastCouldNotSaveDesign'));
             closeSaveDialog();
-            toast(`${filename} se guardó en la galería.`);
+            toast(tr('toastSavedToGallery', { filename }));
             if (typeof window.loadModelsFolder === 'function') window.loadModelsFolder('');
         } catch (error) { toast(error.message, 'error'); }
-        finally { button.disabled = false; button.textContent = 'Guardar SVG'; }
+        finally { button.disabled = false; button.textContent = tr('saveSvgBtn'); }
     }
 
     function valuesFromDxf(tokens, code) { return tokens.filter(pair => pair.code === code).map(pair => Number(pair.value)).filter(Number.isFinite); }
@@ -734,17 +1038,17 @@
     async function importDxfFile(file) {
         const MAX_DXF_BYTES = 2 * 1024 * 1024;
         if (!file) return;
-        if (!/\.dxf$/i.test(file.name)) return toast('Selecciona un archivo DXF.', 'warning');
-        if (file.size > MAX_DXF_BYTES) return toast('El DXF supera el límite de 2 MB.', 'error');
+        if (!/\.dxf$/i.test(file.name)) return toast(tr('toastSelectDxfFile'), 'warning');
+        if (file.size > MAX_DXF_BYTES) return toast(tr('toastDxfTooLarge'), 'error');
         try {
             const imported = parseDxf(await file.text());
-            if (!imported.length) throw new Error('No se encontraron líneas, círculos o polilíneas compatibles.');
+            if (!imported.length) throw new Error(tr('toastNoDxfEntities'));
             const minX = Math.min(...imported.map(shape => Math.min(shape.x, shape.x + shape.width)));
             const minY = Math.min(...imported.map(shape => Math.min(shape.y, shape.y + shape.height)));
             const maxX = Math.max(...imported.map(shape => Math.max(shape.x, shape.x + shape.width)));
             const maxY = Math.max(...imported.map(shape => Math.max(shape.y, shape.y + shape.height)));
             const sourceWidth = maxX-minX, sourceHeight = maxY-minY;
-            if (!Number.isFinite(sourceWidth) || !Number.isFinite(sourceHeight) || sourceWidth > 100000 || sourceHeight > 100000) throw new Error('Las dimensiones del DXF no son válidas.');
+            if (!Number.isFinite(sourceWidth) || !Number.isFinite(sourceHeight) || sourceWidth > 100000 || sourceHeight > 100000) throw new Error(tr('toastInvalidDxfDimensions'));
             const scale = Math.min(1, state.machine.width*.9/Math.max(sourceWidth,1), state.machine.height*.9/Math.max(sourceHeight,1));
             const offsetX = (state.machine.width-sourceWidth*scale)/2, offsetY = (state.machine.height-sourceHeight*scale)/2;
             const importedIds = [];
@@ -752,7 +1056,7 @@
             state.selectedId = importedIds.at(-1) || null;
             state.selectedIds = importedIds.length <= 50 ? importedIds : [state.selectedId];
             renderShapes(); pushHistory();
-            toast(`${imported.length} entidades DXF importadas.`);
+            toast(tr('toastDxfImported', { count: imported.length }));
         } catch (error) { toast(error.message, 'error'); }
     }
 
@@ -788,7 +1092,7 @@
         root.querySelector('#sc-speed-input').addEventListener('input', event => { state.speed = Math.max(1, Number(event.target.value) || 1); state.generatedGcode = ''; });
         root.querySelector('#sc-speed-input').addEventListener('change', pushHistory);
         root.querySelector('#sc-air-assist-input').addEventListener('change', event => { state.airAssist = event.target.checked; state.generatedGcode = ''; pushHistory(); });
-        root.querySelector('#sc-scale-link').addEventListener('click', event => { state.scaleLinked = !state.scaleLinked; const button = event.currentTarget; button.classList.toggle('active', state.scaleLinked); button.querySelector('span').textContent = state.scaleLinked ? 'Escala ligada' : 'Escala libre'; });
+        root.querySelector('#sc-scale-link').addEventListener('click', event => { state.scaleLinked = !state.scaleLinked; const button = event.currentTarget; button.classList.toggle('active', state.scaleLinked); button.querySelector('span').textContent = state.scaleLinked ? tr('scaleLinkedLabel') : tr('scaleFreeLabel'); });
         root.querySelector('#sc-text-input').addEventListener('input', event => { const texts = selectedShapes().filter(shape => shape.type === 'text'); if (texts.length) { texts.forEach(shape => { shape.text = event.target.value; }); renderShapes(); } });
         root.querySelector('#sc-text-input').addEventListener('change', pushHistory);
         root.querySelector('#sc-reset-properties').addEventListener('click', () => { const selection = selectedShapes(); if (!selection.length) return; selection.forEach(shape => { shape.rotation = 0; shape.lineWidth = .1; }); renderShapes(); pushHistory(); });
@@ -799,7 +1103,7 @@
         root.querySelector('#sc-save-btn').addEventListener('click', openSaveDialog);
         root.querySelector('#sc-save-form').addEventListener('submit', saveDesign);
         root.querySelector('#sc-generate-btn').addEventListener('click', generateToolpath);
-        root.querySelector('#sc-preview-btn').addEventListener('click', () => { state.preview = !state.preview; root.classList.toggle('is-preview', state.preview); toast(state.preview ? 'Vista previa activada.' : 'Vista previa desactivada.'); });
+        root.querySelector('#sc-preview-btn').addEventListener('click', () => { state.preview = !state.preview; root.classList.toggle('is-preview', state.preview); toast(state.preview ? tr('previewOnToast') : tr('previewOffToast')); });
         root.querySelector('#sc-queue-btn').addEventListener('click', sendToQueue);
         root.querySelector('#sc-layers-list').addEventListener('change', event => {
             const colorId = Number(event.target.dataset.scLayerColor || 0), outputId = Number(event.target.dataset.scLayerOutput || 0);
@@ -829,13 +1133,13 @@
             const source = activeLayer(), id = Math.max(...state.layers.map(layer => layer.id)) + 1;
             state.layers.push({ ...source, id, name: String(id).padStart(2,'0') }); state.activeLayerId = id;
         } else if (action === 'delete') {
-            if (state.layers.length === 1) return toast('Debe existir al menos una capa.', 'warning');
+            if (state.layers.length === 1) return toast(tr('toastMustHaveOneLayer'), 'warning');
             const removed = state.activeLayerId; state.layers = state.layers.filter(layer => layer.id !== removed); state.shapes = state.shapes.filter(shape => shape.layerId !== removed); state.activeLayerId = state.layers[0].id; state.selectedId = null; state.selectedIds = [];
         }
         renderLayers(); renderShapes(); pushHistory();
     }
 
     window.NopalPluginRegistry = window.NopalPluginRegistry || {};
-    window.NopalPluginRegistry[PLUGIN_ID] = { mount, unmount, version: '1.1.1' };
+    window.NopalPluginRegistry[PLUGIN_ID] = { mount, unmount, version: '1.2.0' };
     mount();
 })();
